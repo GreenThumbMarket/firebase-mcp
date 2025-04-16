@@ -62,8 +62,9 @@ function initializeFirebase() {
 // Initialize Firebase
 const app = initializeFirebase();
 
-// Use non-default database
-const db = getFirestore('greenthumb-ai');
+// Specify database
+const databaseId = process.env.FIREBASE_DATABASE_ID || '(default)';
+const db = getFirestore(databaseId);
 
 // Response interface used throughout the codebase
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
