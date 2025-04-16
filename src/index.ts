@@ -19,6 +19,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import * as admin from 'firebase-admin';
+import {getFirestore} from 'firebase-admin/firestore';
 import { logger } from './utils/logger.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
@@ -60,6 +61,9 @@ function initializeFirebase() {
 
 // Initialize Firebase
 const app = initializeFirebase();
+
+// Use non-default database
+const db = getFirestore('greenthumb-ai');
 
 // Response interface used throughout the codebase
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -505,7 +509,7 @@ class FirebaseMcpServer {
               {} as Record<string, any>
             );
 
-            const docRef = await admin.firestore().collection(collection).add(processedData);
+            const docRef = await db.collection(collection).add(processedData);
 
             return {
               content: [
@@ -524,7 +528,7 @@ class FirebaseMcpServer {
             const collection = args.collection as string;
             const limit = Math.min(Math.max(1, (args.limit as number) || 20), 100); // Default 20, max 100
 
-            let query: admin.firestore.Query = admin.firestore().collection(collection);
+            let query: admin.firestore.Query = db.collection(collection);
 
             // Apply filters if provided
             const filters = args.filters as
@@ -574,7 +578,7 @@ class FirebaseMcpServer {
             // Apply pagination if pageToken is provided
             const pageToken = args.pageToken as string | undefined;
             if (pageToken) {
-              const lastDoc = await admin.firestore().doc(pageToken).get();
+              const lastDoc = await db.doc(pageToken).get();
               if (lastDoc.exists) {
                 query = query.startAfter(lastDoc);
               }
@@ -651,7 +655,7 @@ class FirebaseMcpServer {
             const collection = args.collection as string;
             const id = args.id as string;
 
-            const docRef = admin.firestore().collection(collection).doc(id);
+            const docRef = db.collection(collection).doc(id);
             const doc = await docRef.get();
 
             if (!doc.exists) {
@@ -742,7 +746,7 @@ class FirebaseMcpServer {
               {} as Record<string, any>
             );
 
-            const docRef = admin.firestore().collection(collection).doc(id);
+            const docRef = db.collection(collection).doc(id);
             await docRef.update(processedData);
 
             return {
@@ -763,7 +767,7 @@ class FirebaseMcpServer {
             const collection = args.collection as string;
             const id = args.id as string;
 
-            const docRef = admin.firestore().collection(collection).doc(id);
+            const docRef = db.collection(collection).doc(id);
             await docRef.delete();
 
             return {
@@ -1082,7 +1086,7 @@ class FirebaseMcpServer {
           }
 
           case 'firestore_list_collections':
-            const collections = await admin.firestore().listCollections();
+            const collections = await db.listCollections();
             const collectionList = collections.map(collection => ({
               id: collection.id,
               path: collection.path,
@@ -1103,7 +1107,7 @@ class FirebaseMcpServer {
 
             try {
               // Use the collectionGroup API directly here instead of importing
-              let query: any = admin.firestore().collectionGroup(collectionId);
+              let query: any = db.collectionGroup(collectionId);
 
               // Apply filters if provided
               const filters = args.filters as
@@ -1155,7 +1159,7 @@ class FirebaseMcpServer {
               // Apply pagination if pageToken is provided
               const pageToken = args.pageToken as string | undefined;
               if (pageToken) {
-                const lastDoc = await admin.firestore().doc(pageToken).get();
+                const lastDoc = await db.doc(pageToken).get();
                 if (lastDoc.exists) {
                   query = query.startAfter(lastDoc);
                 }
