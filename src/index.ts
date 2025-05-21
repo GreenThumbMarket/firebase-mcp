@@ -19,7 +19,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import admin from 'firebase-admin';
 import { logger } from './utils/logger.js';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import config from './config.js';
 import { initializeTransport } from './transports/index.js';
 import * as fs from 'fs';
@@ -81,6 +81,10 @@ let app: admin.app.App | null = null;
 (async () => {
   app = await initializeFirebase();
 })();
+
+// Specify database
+const databaseId = process.env.FIREBASE_DATABASE_ID || '(default)';
+const db = getFirestore(databaseId);
 
 // This interface was previously used but is now handled by the SDK
 // Keeping it commented for reference
@@ -526,7 +530,7 @@ class FirebaseMcpServer {
               {} as Record<string, unknown>
             );
 
-            const docRef = await admin.firestore().collection(collection).add(processedData);
+            const docRef = await db.collection(collection).add(processedData);
 
             // Ensure clean JSON by parsing and re-stringifying
             const sanitizedJson = JSON.stringify({
@@ -551,7 +555,7 @@ class FirebaseMcpServer {
             const collection = args.collection as string;
             const limit = Math.min(Math.max(1, (args.limit as number) || 20), 100); // Default 20, max 100
 
-            let query: admin.firestore.Query = admin.firestore().collection(collection);
+            let query: admin.firestore.Query = db.collection(collection);
 
             // Apply filters if provided
             const filters = args.filters as
@@ -601,7 +605,7 @@ class FirebaseMcpServer {
             // Apply pagination if pageToken is provided
             const pageToken = args.pageToken as string | undefined;
             if (pageToken) {
-              const lastDoc = await admin.firestore().doc(pageToken).get();
+              const lastDoc = await db.doc(pageToken).get();
               if (lastDoc.exists) {
                 query = query.startAfter(lastDoc);
               }
@@ -684,7 +688,7 @@ class FirebaseMcpServer {
             const collection = args.collection as string;
             const id = args.id as string;
 
-            const docRef = admin.firestore().collection(collection).doc(id);
+            const docRef = db.collection(collection).doc(id);
             const doc = await docRef.get();
 
             if (!doc.exists) {
@@ -710,23 +714,12 @@ class FirebaseMcpServer {
             // Sanitize data to ensure it's JSON-serializable
             const data = Object.entries(rawData || {}).reduce(
               (acc, [key, value]) => {
-                if (
-                  typeof value === 'string' ||
-                  typeof value === 'number' ||
-                  typeof value === 'boolean' ||
-                  value === null
-                ) {
-                  acc[key] = value;
-                } else if (value instanceof Date) {
+                if (value instanceof Date) {
                   acc[key] = value.toISOString();
                 } else if (value instanceof Timestamp) {
                   acc[key] = value.toDate().toISOString();
-                } else if (Array.isArray(value)) {
-                  acc[key] = `[${value.join(', ')}]`;
-                } else if (typeof value === 'object') {
-                  acc[key] = '[Object]';
                 } else {
-                  acc[key] = String(value);
+                  acc[key] = value;
                 }
                 return acc;
               },
@@ -787,7 +780,7 @@ class FirebaseMcpServer {
               {} as Record<string, unknown>
             );
 
-            const docRef = admin.firestore().collection(collection).doc(id);
+            const docRef = db.collection(collection).doc(id);
             await docRef.update(processedData);
 
             // Ensure clean JSON by parsing and re-stringifying
@@ -814,7 +807,7 @@ class FirebaseMcpServer {
             const collection = args.collection as string;
             const id = args.id as string;
 
-            const docRef = admin.firestore().collection(collection).doc(id);
+            const docRef = db.collection(collection).doc(id);
             await docRef.delete();
 
             // Ensure clean JSON by parsing and re-stringifying
@@ -1316,7 +1309,7 @@ class FirebaseMcpServer {
               const pageToken = args.pageToken as string | undefined;
 
               // Use the Firestore instance directly
-              let query: FirebaseFirestore.Query = admin.firestore().collectionGroup(collectionId);
+              let query: FirebaseFirestore.Query = db.collectionGroup(collectionId);
 
               // Apply filters if provided
               if (filters && filters.length > 0) {
@@ -1353,7 +1346,7 @@ class FirebaseMcpServer {
               // Apply pagination if pageToken is provided
               if (pageToken) {
                 try {
-                  const lastDoc = await admin.firestore().doc(pageToken).get();
+                  const lastDoc = await db.doc(pageToken).get();
                   if (lastDoc.exists) {
                     query = query.startAfter(lastDoc);
                   }
