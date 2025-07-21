@@ -621,14 +621,14 @@ class FirebaseMcpServer {
               const data = Object.entries(rawData).reduce(
                 (acc, [key, value]) => {
                   // Handle basic types directly
-                if (value instanceof Date) {
-                  acc[key] = value.toISOString();
-                } else if (value instanceof Timestamp) {
-                  acc[key] = value.toDate().toISOString();
-                } else {
-                  acc[key] = value;
-                }
-                return acc;
+                  if (value instanceof Date) {
+                    acc[key] = value.toISOString();
+                  } else if (value instanceof Timestamp) {
+                    acc[key] = value.toDate().toISOString();
+                  } else {
+                    acc[key] = value;
+                  }
+                  return acc;
                 },
                 {} as Record<string, unknown>
               );
