@@ -621,33 +621,12 @@ class FirebaseMcpServer {
               const data = Object.entries(rawData).reduce(
                 (acc, [key, value]) => {
                   // Handle basic types directly
-                  if (
-                    typeof value === 'string' ||
-                    typeof value === 'number' ||
-                    typeof value === 'boolean' ||
-                    value === null
-                  ) {
-                    acc[key] = value;
-                  }
-                  // Convert Date objects to ISO strings
-                  else if (value instanceof Date) {
+                  if (value instanceof Date) {
                     acc[key] = value.toISOString();
-                  }
-                  // Handle Firestore Timestamp objects properly
-                  else if (value instanceof Timestamp) {
+                  } else if (value instanceof Timestamp) {
                     acc[key] = value.toDate().toISOString();
-                  }
-                  // Convert arrays to strings
-                  else if (Array.isArray(value)) {
-                    acc[key] = `[${value.join(', ')}]`;
-                  }
-                  // Convert other objects to string representation
-                  else if (typeof value === 'object') {
-                    acc[key] = '[Object]';
-                  }
-                  // Convert other types to strings
-                  else {
-                    acc[key] = String(value);
+                  } else {
+                    acc[key] = value;
                   }
                   return acc;
                 },
